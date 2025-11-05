@@ -47,10 +47,12 @@ def register_callbacks(app, world_cup_overview_df: pd.DataFrame, matches_df: pd.
         
         # Define custom colors for each placement for better visual distinction
         colors = {
-            '1st Place': '#FFD700', # Gold
-            '2nd Place': '#C0C0C0', # Silver
-            '3rd Place': '#CD7F32', # Bronze
-            '4th Place': '#A9A9A9'  # Dark Gray
+
+            '1st Place': '#D4AF37', # Gold
+            '2nd Place': '#D8D8D8', # Silver
+            '3rd Place': '#B08D57', # Bronze
+            '4th Place': '#4682B4'
+
         }
 
         fig = px.bar(
@@ -101,7 +103,7 @@ def register_callbacks(app, world_cup_overview_df: pd.DataFrame, matches_df: pd.
         )
         return fig
 
-    # Callback for Match Details Table
+# Callback for Match Details Table
     @app.callback(
         Output("match-details-table-container", "children"),
         Input("matches-year-selector", "value"),
@@ -115,17 +117,39 @@ def register_callbacks(app, world_cup_overview_df: pd.DataFrame, matches_df: pd.
         if filtered_matches_df.empty:
             return html.P(f"No match data for World Cup {selected_year}.")
         
+        # Create a copy for display to avoid modifying original data
+        display_df = filtered_matches_df.copy()
+        
+        # Format the datetime column to show only date in "12 Jun, 2014" format
+        if 'Datetime' in display_df.columns:
+            display_df['Datetime'] = pd.to_datetime(display_df['Datetime'], errors='coerce')
+            display_df['Datetime'] = display_df['Datetime'].dt.strftime('%d %b, %Y')
+        
         display_cols = [
             "Datetime", "Stage", "Home Team Name", "Home Team Goals", 
             "Away Team Goals", "Away Team Name", "Stadium", "City", "Win conditions"
         ]
-        table_df = filtered_matches_df[display_cols].fillna('N/A')
+        
+        # Select only the columns that exist in the dataframe
+        available_cols = [col for col in display_cols if col in display_df.columns]
+        table_df = display_df[available_cols].fillna('N/A')
         
         table_header = [html.Thead(html.Tr([html.Th(col.replace('_', ' ')) for col in table_df.columns]))]
         table_body = [
             html.Tbody([
-                html.Tr([html.Td(table_df.iloc[i][col]) for col in table_df.columns])
+                html.Tr([
+                    html.Td(
+                        table_df.iloc[i][col],
+                        style={"whiteSpace": "nowrap", "width": "120px"} if col == "Datetime" else {}
+                    )
+                    for col in table_df.columns
+                ])
+
                 for i in range(len(table_df))
             ])
         ]
-        return html.Table(table_header + table_body, className="table table-striped table-hover")
+        return html.Table(
+            table_header + table_body,
+            className="table table-striped table-hover",
+            style={"width": "100%", "tableLayout": "auto"}
+        )
