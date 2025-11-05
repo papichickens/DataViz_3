@@ -1,13 +1,15 @@
 from dash import Dash, dcc, html
 import pandas as pd
-
 from layout import get_layout
 from callbacks import register_callbacks
-from data_helper import load_world_cup_data
+from data_helper import load_world_cup_data, add_continent_column 
 
 # load data
 print("--- App Startup: Loading FIFA World Cup Data from local CSVs ---")
 world_cup_overview_df, matches_df, players_df = load_world_cup_data()
+
+if world_cup_overview_df is not None:
+    world_cup_overview_df = add_continent_column(world_cup_overview_df)
 
 # Basic error handling for data loading
 if world_cup_overview_df is None or matches_df is None or players_df is None:

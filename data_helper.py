@@ -10,72 +10,123 @@ except Exception:
 
 # small manual override map for names that fail ISO lookup
 MANUAL_NAME_TO_ISO2 = {
-    "Côte d'Ivoire": "ci",
-    "Cote d'Ivoire": "ci",
-    "Ivory Coast": "ci",
-    "Bosnia and Herzegovina": "ba",
-    "Trinidad and Tobago": "tt",
-    "Serbia and Montenegro": "rs",
+    # --- Critical Fixes & Common Names ---
+    "Germany": "de",
+    "USA": "us",
     "Republic of Ireland": "ie",
-    "Malmö": "se",
-    "England": "gb",
-    "Korea Republic": "kr",
+    "Korea Republic": "kr",          # Official FIFA name for South Korea
     "South Korea": "kr",
-    "Turkey": "tr",
-    "Yugoslavia": "rs",       # historic ISO2 (FlagCDN may not have it, fallback to Serbia "rs")
-    "Dutch East Indies": "id", # Indonesia
-    "Wales": "gb-wls",         # subregion for UK/Wales
-    "Korea DPR": "kp",
-    "Germany FR": "de",
+    "Korea DPR": "kp",               # Official FIFA name for North Korea
+    "North Korea": "kp",
+    "IR Iran": "ir",                 # Official FIFA name for Iran
+
+    # --- UK Home Nations (use special sub-country codes for better flags) ---
+    "England": "gb-eng",
     "Scotland": "gb-sct",
-    # Optional: add "Germany", "East Germany", "West Germany" etc.
+    "Wales": "gb-wls",
+    "Northern Ireland": "gb-nir",
+
+    # --- Historic or Former Country Names (mapped to modern equivalent) ---
+    "Germany FR": "de",              # West Germany
+    "Germany DR": "de",              # East Germany (renders same German flag)
+    "Soviet Union": "ru",            # Fallback to Russia
+    "Yugoslavia": "rs",              # Fallback to Serbia
+    "Czechoslovakia": "cz",          # Fallback to Czech Republic
+    "Dutch East Indies": "id",       # Historical name for Indonesia
+    "Serbia and Montenegro": "rs",   # Fallback to Serbia
+    "Zaire": "cd",                   # Now DR Congo
+
+    # --- Standard Country Names (Alphabetical) ---
+    "Algeria": "dz",
+    "Angola": "ao",
+    "Argentina": "ar",
+    "Australia": "au",
+    "Austria": "at",
+    "Belgium": "be",
+    "Bolivia": "bo",
+    "Bosnia and Herzegovina": "ba",
+    "Brazil": "br",
+    "Bulgaria": "bg",
+    "Cameroon": "cm",
+    "Canada": "ca",
+    "Chile": "cl",
+    "China PR": "cn",
+    "Colombia": "co",
+    "Costa Rica": "cr",
+    "Cote d'Ivoire": "ci",           # Ivory Coast
+    "Côte d'Ivoire": "ci",
+    "Croatia": "hr",
+    "Cuba": "cu",
+    "Czech Republic": "cz",
+    "Denmark": "dk",
+    "Ecuador": "ec",
+    "Egypt": "eg",
+    "El Salvador": "sv",
+    "France": "fr",
+    "Ghana": "gh",
+    "Greece": "gr",
+    "Haiti": "ht",
+    "Honduras": "hn",
+    "Hungary": "hu",
+    "Iceland": "is",
+    "Iran": "ir",
+    "Iraq": "iq",
+    "Israel": "il",
+    "Italy": "it",
+    "Jamaica": "jm",
+    "Japan": "jp",
+    "Kuwait": "kw",
+    "Mexico": "mx",
+    "Morocco": "ma",
+    "Netherlands": "nl",
+    "New Zealand": "nz",
+    "Nigeria": "ng",
+    "Norway": "no",
+    "Paraguay": "py",
+    "Peru": "pe",
+    "Poland": "pl",
+    "Portugal": "pt",
+    "Romania": "ro",
+    "Russia": "ru",
+    "Saudi Arabia": "sa",
+    "Senegal": "sn",
+    "Serbia": "rs",
+    "Slovakia": "sk",
+    "Slovenia": "si",
+    "South Africa": "za",
+    "Spain": "es",
+    "Sweden": "se",
+    "Switzerland": "ch",
+    "Togo": "tg",
+    "Trinidad and Tobago": "tt",
+    "Tunisia": "tn",
+    "Turkey": "tr",
+    "Ukraine": "ua",
+    "United Arab Emirates": "ae",
+    "Uruguay": "uy",
 }
 
+
 def country_to_iso2(name: str) -> str | None:
-    """Try to convert a country name to ISO2 (lowercase). Returns e.g. 'fr' or None."""
+    """
+    Converts a country name to its ISO2 code using a reliable manual dictionary.
+    Returns e.g., 'fr' for France, or None if the name is not found.
+    """
     if not name or not isinstance(name, str):
         return None
-    # clean a bit
-    n = name.strip()
-    # try manual map first
-    if n in MANUAL_NAME_TO_ISO2:
-        return MANUAL_NAME_TO_ISO2[n].lower()
-    # try pycountry if available
-    if pycountry:
-        try:
-            # pycountry search might fail for some names, try exact then common name search
-            country = pycountry.countries.get(name=n)
-            if country:
-                return country.alpha_2.lower()
-            # try lookup by common name or partial match
-            # first try by official_name
-            for c in pycountry.countries:
-                if hasattr(c, 'common_name') and c.common_name.lower() == n.lower():
-                    return c.alpha_2.lower()
-                if c.name.lower() == n.lower():
-                    return c.alpha_2.lower()
-            # last resort: fuzzy contains
-            for c in pycountry.countries:
-                if n.lower() in c.name.lower():
-                    return c.alpha_2.lower()
-        except Exception:
-            pass
-    # fallback: try simple heuristics (take first two letters)
-    # (not reliable but better than nothing)
-    safe = ''.join(ch for ch in n if ch.isalpha())
-    if len(safe) >= 2:
-        return safe[:2].lower()
-    return None
+    
+    iso_code = MANUAL_NAME_TO_ISO2.get(name.strip())
+    
+    return iso_code.lower() if iso_code else None
 
 def get_flag_url_by_iso(iso2: str) -> str:
     """Return a remote flag CDN URL for a given iso2 code (lowercase)."""
     if not iso2:
         return ""
-    # FlagCDN format: https://flagcdn.com/w320/{iso2}.png (iso2 lowercase)
     return f"https://flagcdn.com/w320/{iso2}.png"
 
 def get_flag_url(country_name: str) -> str:
-    """Convenience: get flag url for a country name, or '' if unknown."""
+    """Convenience function: gets the full flag URL for a country name."""
     iso2 = country_to_iso2(country_name)
     if not iso2:
         return ""
@@ -211,3 +262,29 @@ if __name__ == "__main__":
     if players is not None:
         print("\nWorld Cup Players Data Head:")
         print(players.head())
+
+
+COUNTRY_TO_CONTINENT = {
+    'Uruguay': 'South America',
+    'Italy': 'Europe',
+    'France': 'Europe',
+    'Brazil': 'South America',
+    'Switzerland': 'Europe',
+    'Sweden': 'Europe',
+    'Chile': 'South America',
+    'England': 'Europe',
+    'Mexico': 'North America',
+    'Germany': 'Europe',
+    'Germany FR': 'Europe', # For old data
+    'Argentina': 'South America',
+    'Spain': 'Europe',
+    'USA': 'North America',
+    'Korea/Japan': 'Asia',
+    'South Africa': 'Africa',
+    # Add any other host countries if they are missing from this list
+}
+
+def add_continent_column(df: pd.DataFrame) -> pd.DataFrame:
+    """Adds a 'Continent' column to the dataframe based on the 'Country' (Host) column."""
+    df['Continent'] = df['Country'].map(COUNTRY_TO_CONTINENT)
+    return df

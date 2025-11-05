@@ -2,86 +2,90 @@ from dash import html, dcc
 import pandas as pd
 
 # ---------------------------------------------------------------------
-# Common Plotly/Dash config used for all graphs so modebar is consistent
+# Common Plotly/Dash config
 # ---------------------------------------------------------------------
 COMMON_PLOTLY_CONFIG = {
-    # show the modebar
     "displayModeBar": True,
-    # remove the Plotly logo from the modebar
     "displaylogo": False,
-    # exact buttons & order (single group array ensures the exact order)
-    # Order: Pan, Zoom in, Zoom out, Zoom (box zoom / select), Download (toImage)
     "modeBarButtons": [
         ["pan2d", "zoomIn2d", "zoomOut2d", "zoom2d", "resetScale2d", "toImage"]
     ],
-    # responsive layout behavior
     "responsive": True
 }
 
-
 def get_layout(world_cup_overview_df: pd.DataFrame):    
-    years = world_cup_overview_df["Year"].dropna().astype(int).sort_values(ascending=False).unique()
-    year_options = [{"label": str(year), "value": year} for year in years]
+    years = world_cup_overview_df["Year"].dropna().astype(int).sort_values().unique()
+    min_year = int(years.min()) if len(years) > 0 else 1930
+    max_year = int(years.max()) if len(years) > 0 else 2014
+    
+    N = 4
+    slider_marks = {
+        int(year): {
+            'label': str(int(year)) if i % N == 0 else '',
+            'style': {'transform': 'rotate(45deg)', 'white-space': 'nowrap', 'color': '#7f8c8d' if i % N == 0 else 'rgba(0,0,0,0)'}
+        } for i, year in enumerate(years)
+    }
 
-    # Styles
-    container_style = {"maxWidth": "1200px", "margin": "20px auto", "padding": "10px"}
-    card_style = {"border": "1px solid #e6e6e6", "padding": "18px", "borderRadius": "8px",
-                  "backgroundColor": "#ffffff", "boxShadow": "0 2px 6px rgba(0,0,0,0.03)", "marginBottom": "18px"}
-    header_style = {"textAlign": "center", "color": "#005a30", "fontWeight": "bold", "marginBottom": "6px"}
-    subtitle_style = {"textAlign": "center", "color": "#333", "marginTop": "0px", "marginBottom": "16px"}
+    # --- Styles (Minor adjustments for consistency) ---
+    app_container_style = {"maxWidth": "1600px", "margin": "20px auto", "padding": "20px"}
+    header_style = {"textAlign": "center", "color": "#1A5276", "fontWeight": "bold", "marginBottom": "5px"}
+    subtitle_style = {"textAlign": "center", "color": "#566573", "marginTop": "0px", "marginBottom": "25px"}
+    card_style = {"border": "1px solid #d5dbdb", "padding": "20px", "borderRadius": "8px", "backgroundColor": "#ffffff", "boxShadow": "0 4px 8px rgba(0,0,0,0.05)", "marginBottom": "20px"}
+    main_content_style = {"display": "flex", "flexDirection": "row", "gap": "20px"}
+    left_column_style = {"flex": "2", "display": "flex", "flexDirection": "column"}
+    right_column_style = {"flex": "1", "display": "flex", "flexDirection": "column"}
+    plot_title_style = {"fontSize": "22px", "fontWeight": "700", "color": "#2C3E50"}
+    small_label_style = {"fontSize": "14px", "color": "#566573", "marginBottom": "8px", "fontWeight": "bold"}
 
-    # Bigger/bold sizes for plot titles (these are headings above the graph components)
-    plot_title_style = {"fontSize": "20px", "fontWeight": "700", "marginTop": "0", "marginBottom": "6px", "color": "#222"}
-    small_label = {"fontSize": "13px", "color": "#444", "marginBottom": "6px"}
-
-    # Layout
+    # --- Layout Structure ---
+    # The main Div now uses an external stylesheet
     return html.Div([
         html.Div([
-            html.H1("FIFA World Cup Data Analysis", style=header_style),
-            html.P("Interactive dashboard to explore World Cup placements, matches and player-level events.", style=subtitle_style),
+            html.H1("FIFA World Cup Interactive Explorer", style=header_style),
+            html.P("Analyze every tournament from 1930 to 2014. Click a tournament to see the details.", style=subtitle_style),
 
-            # Top row: placements + controls
             html.Div([
+                # --- Left Column ---
                 html.Div([
-                    html.H3("Top-4 Placements by Country", style=plot_title_style),
-                    html.P("Sorted by total top-4 finishes. Click on a country to inspect details.", style={"color":"#555", "marginBottom":"12px"}),
-                    dcc.Graph(id="world-cup-placements-graph", config=COMMON_PLOTLY_CONFIG, style={"height": "520px"})
-                ], style={**card_style, "flex":"1 1 65%"}),
+                    html.Div([
+                        html.H3("World Cup Tournaments Overview", style=plot_title_style),
+                        html.P("Each point is a tournament. Size represents attendance.", style={"color":"#566573"}),
+                        
+                        # MODIFICATION: Wrap the graph in a new div for the background image
+                        html.Div(
+                            id='scatter-plot-container',
+                            children=[
+                                dcc.Graph(id="world-cup-overview-scatter", config=COMMON_PLOTLY_CONFIG, style={"height": "600px"})
+                            ]
+                        ),
+                        
+                        html.Div([
+                            html.Div("Select Year Range to Highlight:", style=small_label_style),
+                            dcc.RangeSlider(id="year-range-slider", min=min_year, max=max_year, value=[min_year, max_year], marks=slider_marks, step=None, tooltip={"placement": "bottom", "always_visible": False}),
+                            html.Div(id="range-summary-output", style={'textAlign': 'center', 'marginTop': '15px', 'color': '#566573'})
+                        ], style={"padding": "20px 10px 10px 10px"})
+                        
+                    ], style=card_style)
+                ], style=left_column_style),
 
-                html.Div([
-                    html.H4("Filter", style={"fontSize":"18px", "fontWeight":"700"}),
-                    html.Div([html.Div("Select Year", style=small_label),
-                              dcc.Dropdown(id="matches-year-selector", options=year_options,
-                                           value=years[0] if len(years) > 0 else None, clearable=False,
-                                           style={"width":"100%"})], style={"marginBottom":"12px"}),
+                # ... (Right Column remains exactly the same) ...
+                 html.Div([
+                    html.Div(id="tournament-detail-panel", children=[
+                        html.Button("Clear Selection", id="clear-selection-button", n_clicks=0, style={'float': 'right', 'display': 'none', 'marginBottom': '10px'}),
+                        html.H3("Tournament Details", style=plot_title_style),
+                        html.Div(id="tournament-summary", children=[html.P("Click on a tournament in the scatter plot to see details here.", style={"color":"#7f8c8d"})]),
+                        html.Hr(),
+                        html.Div("Select a Team:", style=small_label_style),
+                        dcc.Dropdown(id="team-selector-dropdown", placeholder="Select a team...", disabled=True),
+                    ], style=card_style),
+                    html.Div(id="team-player-detail-panel", children=[
+                        html.H3("Team & Player Details", style=plot_title_style),
+                        html.Div(id="team-player-summary", children=[html.P("Select a team above to see their performance and player stats for the tournament.", style={"color":"#7f8c8d"})])
+                    ], style=card_style)
+                ], style=right_column_style)
 
-                    # html.Div([html.Div("Year Range", style=small_label),
-                    #           dcc.RangeSlider(id="year-range-slider",
-                    #                           min=int(years.min()) if len(years) else 1930,
-                    #                           max=int(years.max()) if len(years) else 2022,
-                    #                           value=[int(years.min()), int(years.max())] if len(years) else [1930,2022],
-                    #                           marks={int(year):str(int(year)) for i, year in enumerate(years) if i % max(1,len(years)//8)==0},
-                    #                           tooltip={"placement":"bottom"})], style={"marginBottom":"18px"}),
+            ], style=main_content_style),
 
-                    # html.Div([html.Div("Stage Filter (optional)", style=small_label),
-                    #           dcc.Checklist(id="stage-checklist", options=[], value=[], labelStyle={"display":"block"})], style={"marginBottom":"18px"}),
-                ], style={**card_style, "flex":"1 1 32%"})
-            ], style={"display":"flex", "gap":"16px", "flexWrap":"wrap"}),
-
-            # Lower: goals + table
-            html.Div([
-                html.Div([
-                    html.H3("Match Goals Overview", style=plot_title_style),
-                    dcc.Graph(id="match-goals-graph", config=COMMON_PLOTLY_CONFIG, style={"height":"380px"})
-                ], style={**card_style, "width":"100%"}),
-                
-                html.Div([
-                    html.H3("Match Results Table", style=plot_title_style),
-                    html.Div(id="match-details-table-container", style={"maxHeight":"420px", "overflowY":"auto"})
-                ], style={**card_style, "width":"100%"})
-            ], style={"marginTop":"8px", "display":"grid", "gridTemplateColumns":"1fr", "gap":"12px"}),
-
-            html.Div("Data source: local CSV files (WorldCups.csv, WorldCupMatches.csv, WorldCupPlayers.csv).",
-                     style={"textAlign":"center","color":"#666","fontSize":"13px","marginTop":"10px"})
-        ], style=container_style)
+            html.Div("Data source: Kaggle FIFA World Cup Dataset.", style={"textAlign":"center","color":"#99a3a4","fontSize":"12px","marginTop":"30px"})
+        ], style=app_container_style)
     ])

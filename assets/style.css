@@ -1,0 +1,52 @@
+/* In assets/style.css */
+
+/* --- 1. Import Google Font --- */
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap');
+body {
+    font-family: 'Roboto', sans-serif;
+    background-color: #f4f6f7;
+    background-image: linear-gradient(to top, #e8eff2 0%, #f4f6f7 100%);
+}
+
+/* --- REVISED Style for the Background Image Card --- */
+#scatter-plot-container {
+    position: relative;
+    /* This ensures the pseudo-element is contained within the card's padding area */
+    background-clip: padding-box;
+}
+
+#scatter-plot-container::before {
+    content: "";
+    position: absolute;
+    /* Position it inside the padding area */
+    top: 20px;
+    left: 20px;
+    right: 20px;
+    bottom: 20px;
+    background-image: url('/assets/trophy.png'); /* Use absolute path from assets folder */
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: contain;
+    opacity: 0.08;
+    z-index: 0; /* Put it at the very back */
+}
+
+/* --- 4. Improve Table Styling --- */
+.table {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 14px;
+}
+.table th, .table td {
+    padding: 8px 12px;
+    border-bottom: 1px solid #dee2e6;
+    text-align: left;
+}
+.table thead th {
+    background-color: #e9ecef;
+    color: #495057;
+    font-weight: bold;
+}
+.table-striped tbody tr:nth-of-type(odd) {
+    background-color: rgba(0, 0, 0, 0.03);
+}
