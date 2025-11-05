@@ -1,6 +1,90 @@
 import pandas as pd
 import os
 
+###
+# --------- Flag helpers (paste near top of callbacks.py) -------------
+try:
+    import pycountry
+except Exception:
+    pycountry = None
+
+# small manual override map for names that fail ISO lookup
+MANUAL_NAME_TO_ISO2 = {
+    "Côte d'Ivoire": "ci",
+    "Cote d'Ivoire": "ci",
+    "Ivory Coast": "ci",
+    "Bosnia and Herzegovina": "ba",
+    "Trinidad and Tobago": "tt",
+    "Serbia and Montenegro": "rs",
+    "Republic of Ireland": "ie",
+    "Malmö": "se",
+    "England": "gb",
+    "Korea Republic": "kr",
+    "South Korea": "kr",
+    "Turkey": "tr",
+    "Yugoslavia": "rs",       # historic ISO2 (FlagCDN may not have it, fallback to Serbia "rs")
+    "Dutch East Indies": "id", # Indonesia
+    "Wales": "gb-wls",         # subregion for UK/Wales
+    "Korea DPR": "kp",
+    "Germany FR": "de",
+    "Scotland": "gb-sct",
+    # Optional: add "Germany", "East Germany", "West Germany" etc.
+}
+
+def country_to_iso2(name: str) -> str | None:
+    """Try to convert a country name to ISO2 (lowercase). Returns e.g. 'fr' or None."""
+    if not name or not isinstance(name, str):
+        return None
+    # clean a bit
+    n = name.strip()
+    # try manual map first
+    if n in MANUAL_NAME_TO_ISO2:
+        return MANUAL_NAME_TO_ISO2[n].lower()
+    # try pycountry if available
+    if pycountry:
+        try:
+            # pycountry search might fail for some names, try exact then common name search
+            country = pycountry.countries.get(name=n)
+            if country:
+                return country.alpha_2.lower()
+            # try lookup by common name or partial match
+            # first try by official_name
+            for c in pycountry.countries:
+                if hasattr(c, 'common_name') and c.common_name.lower() == n.lower():
+                    return c.alpha_2.lower()
+                if c.name.lower() == n.lower():
+                    return c.alpha_2.lower()
+            # last resort: fuzzy contains
+            for c in pycountry.countries:
+                if n.lower() in c.name.lower():
+                    return c.alpha_2.lower()
+        except Exception:
+            pass
+    # fallback: try simple heuristics (take first two letters)
+    # (not reliable but better than nothing)
+    safe = ''.join(ch for ch in n if ch.isalpha())
+    if len(safe) >= 2:
+        return safe[:2].lower()
+    return None
+
+def get_flag_url_by_iso(iso2: str) -> str:
+    """Return a remote flag CDN URL for a given iso2 code (lowercase)."""
+    if not iso2:
+        return ""
+    # FlagCDN format: https://flagcdn.com/w320/{iso2}.png (iso2 lowercase)
+    return f"https://flagcdn.com/w320/{iso2}.png"
+
+def get_flag_url(country_name: str) -> str:
+    """Convenience: get flag url for a country name, or '' if unknown."""
+    iso2 = country_to_iso2(country_name)
+    if not iso2:
+        return ""
+    return get_flag_url_by_iso(iso2)
+# ---------------------------------------------------------------------
+
+
+###
+
 def load_world_cup_data(folder_name="data"):
     """
     Loads World Cup overview, matches, and players data from CSV files.
@@ -78,17 +162,26 @@ def clean_data_names(df):
         'rn">Trinidad and Tobago': 'Trinidad and Tobago',
         'rn">Serbia and Montenegro': 'Serbia and Montenegro', 
         'rn">Republic of Ireland': 'Republic of Ireland',
+        'rn">United Arab Emirates': 'United Arab Emirates',
         
         # Stadium name corrections
         'Maracan� - Est�dio Jornalista M�rio Filho': 'Maracanã - Estádio Jornalista Mário Filho',
         'Est�dio Jornalista M�rio Filho': 'Estádio Jornalista Mário Filho',
         'Maracan�': 'Maracanã',
         'Stade V�lodrome': 'Stade Vélodrome',
+        'Nou Camp - Estadio Le�n' : 'Nou Camp - Estadio León',
+        'Estadio Jos� Mar�a Minella':'Estadio José María Minella',
+        'Estadio Ol�mpico Chateau Carreras' : 'Estadio Olímpico Chateau Carreras',
+        'Estadio Municipal de Bala�dos': 'Estadio Municipal de Balaídos',
+        'Estadio Ol�mpico Universitario': 'Estadio Olímpico Universitario',
         
         # City name corrections
         'Malm�': 'Malmö',
         'Malmo': 'Malmö', 
         'Norrk�Ping' : 'Norrköping',
+        'D�Sseldorf ': 'Düsseldorf',
+        'La Coru�A ': 'A Coruña'
+
 
         # Add more corrections as you find them
     }
@@ -113,30 +206,7 @@ def clean_data_names(df):
 # Example usage if data_helper.py is run directly
 if __name__ == "__main__":
     overview, matches, players = load_world_cup_data()
-    
-    if overview is not None:
-        print("\nWorld Cup Overview Data Head:")
-        print(overview.head())
-        # Check for any remaining encoding issues
-        print("\nChecking for names with special characters in overview:")
-        text_cols = [col for col in overview.columns if any(keyword in col.lower() for keyword in ['team', 'country', 'winner', 'stadium'])]
-        for col in text_cols:
-            unique_values = overview[col].unique()
-            problematic_values = [val for val in unique_values if any(char in val for char in ['�', 'rn">'])]
-            if problematic_values:
-                print(f"Problematic values in {col}: {problematic_values}")
-    
-    if matches is not None:
-        print("\nWorld Cup Matches Data Head:")
-        print(matches.head())
-        # Check for any remaining encoding issues in matches
-        print("\nChecking for names with special characters in matches:")
-        text_cols = [col for col in matches.columns if any(keyword in col.lower() for keyword in ['team', 'stadium', 'city', 'referee'])]
-        for col in text_cols:
-            unique_values = matches[col].unique()
-            problematic_values = [val for val in unique_values if any(char in val for char in ['�', 'rn">'])]
-            if problematic_values:
-                print(f"Problematic values in {col}: {problematic_values}")
+
     
     if players is not None:
         print("\nWorld Cup Players Data Head:")

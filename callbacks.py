@@ -1,6 +1,8 @@
 from dash import Output, Input, html
 import plotly.express as px
 import pandas as pd
+from data_helper import load_world_cup_data,country_to_iso2,get_flag_url, get_flag_url_by_iso
+
 
 def register_callbacks(app, world_cup_overview_df: pd.DataFrame, matches_df: pd.DataFrame, players_df: pd.DataFrame):
     @app.callback(
@@ -103,7 +105,8 @@ def register_callbacks(app, world_cup_overview_df: pd.DataFrame, matches_df: pd.
         )
         return fig
 
-# Callback for Match Details Table
+
+# Callback for Match Details Table with flags in team name columns
     @app.callback(
         Output("match-details-table-container", "children"),
         Input("matches-year-selector", "value"),
@@ -116,38 +119,67 @@ def register_callbacks(app, world_cup_overview_df: pd.DataFrame, matches_df: pd.
 
         if filtered_matches_df.empty:
             return html.P(f"No match data for World Cup {selected_year}.")
-        
-        # Create a copy for display to avoid modifying original data
-        display_df = filtered_matches_df.copy()
-        
-        # Format the datetime column to show only date in "12 Jun, 2014" format
-        if 'Datetime' in display_df.columns:
-            display_df['Datetime'] = pd.to_datetime(display_df['Datetime'], errors='coerce')
-            display_df['Datetime'] = display_df['Datetime'].dt.strftime('%d %b, %Y')
-        
+
+        # Format the datetime column
+        if 'Datetime' in filtered_matches_df.columns:
+            filtered_matches_df['Datetime'] = pd.to_datetime(filtered_matches_df['Datetime'], errors='coerce')
+            filtered_matches_df['Datetime'] = filtered_matches_df['Datetime'].dt.strftime('%d %b, %Y')
+
+        # Columns to display
         display_cols = [
-            "Datetime", "Stage", "Home Team Name", "Home Team Goals", 
+            "Datetime", "Stage", "Home Team Name", "Home Team Goals",
             "Away Team Goals", "Away Team Name", "Stadium", "City", "Win conditions"
         ]
-        
-        # Select only the columns that exist in the dataframe
-        available_cols = [col for col in display_cols if col in display_df.columns]
-        table_df = display_df[available_cols].fillna('N/A')
-        
-        table_header = [html.Thead(html.Tr([html.Th(col.replace('_', ' ')) for col in table_df.columns]))]
-        table_body = [
-            html.Tbody([
-                html.Tr([
-                    html.Td(
-                        table_df.iloc[i][col],
-                        style={"whiteSpace": "nowrap", "width": "120px"} if col == "Datetime" else {}
-                    )
-                    for col in table_df.columns
-                ])
+        available_cols = [col for col in display_cols if col in filtered_matches_df.columns]
+        table_df = filtered_matches_df[available_cols].fillna('N/A')
 
-                for i in range(len(table_df))
-            ])
-        ]
+        # Table header
+        table_header = [html.Thead(html.Tr([html.Th(col.replace('_', ' ')) for col in table_df.columns]))]
+
+        # Build table body with flags and centered goals
+        rows = []
+        for i in range(len(table_df)):
+            row = table_df.iloc[i].to_dict()
+            cells = []
+
+            for col in table_df.columns:
+                cell_val = row.get(col, "")
+
+                # Insert flags for team name columns
+                if col in ["Home Team Name", "Home Team"]:
+                    flag_url = get_flag_url(cell_val)
+                    if flag_url:
+                        cell_content = html.Div([
+                            html.Img(src=flag_url, style={"height": "20px", "marginRight": "6px"}),
+                            html.Span(cell_val)
+                        ], style={"display": "flex", "alignItems": "center"})
+                        cells.append(html.Td(cell_content))
+                        continue
+                elif col in ["Away Team Name", "Away Team"]:
+                    flag_url = get_flag_url(cell_val)
+                    if flag_url:
+                        cell_content = html.Div([
+                            html.Img(src=flag_url, style={"height": "20px", "marginRight": "6px"}),
+                            html.Span(cell_val)
+                        ], style={"display": "flex", "alignItems": "center"})
+                        cells.append(html.Td(cell_content))
+                        continue
+
+                # Center the goals
+                if col in ["Home Team Goals", "Away Team Goals"]:
+                    cell_style = {"textAlign": "center", "width": "80px"}
+                # Default style for datetime column
+                elif col == "Datetime":
+                    cell_style = {"whiteSpace": "nowrap", "width": "130px"}
+                else:
+                    cell_style = {}
+
+                cells.append(html.Td(cell_val, style=cell_style))
+
+            rows.append(html.Tr(cells))
+
+        table_body = [html.Tbody(rows)]
+
         return html.Table(
             table_header + table_body,
             className="table table-striped table-hover",
