@@ -159,7 +159,7 @@ def load_world_cup_data(folder_name="data"):
 
     try:
         if os.path.exists(world_cup_overview_path):
-            world_cup_overview_df = pd.read_csv(world_cup_overview_path)
+            world_cup_overview_df = pd.read_csv(world_cup_overview_path, encoding="latin1")
             # Apply corrections to overview data
             world_cup_overview_df = clean_data_names(world_cup_overview_df)
             # Basic cleaning/type conversion for overview data
@@ -171,7 +171,7 @@ def load_world_cup_data(folder_name="data"):
             print(f"Error: WorldCups.csv not found at {world_cup_overview_path}")
 
         if os.path.exists(matches_path):
-            matches_df = pd.read_csv(matches_path)
+            matches_df = pd.read_csv(matches_path, encoding="latin1")
             # Apply corrections to matches data
             matches_df = clean_data_names(matches_df)
             # Basic cleaning/type conversion for matches data
@@ -184,7 +184,7 @@ def load_world_cup_data(folder_name="data"):
             print(f"Error: WorldCupMatches.csv not found at {matches_path}")
 
         if os.path.exists(players_path):
-            players_df = pd.read_csv(players_path)
+            players_df = pd.read_csv(players_path, encoding="latin1")
             # Apply corrections to players data
             players_df = clean_data_names(players_df)
             print(f"Loaded WorldCupPlayers.csv with {len(players_df)} rows.")
