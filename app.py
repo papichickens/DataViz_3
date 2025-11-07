@@ -35,6 +35,7 @@ app.layout = html.Div([
 register_callbacks(app, world_cup_overview_df, matches_df, players_df, all_teams, country_iso_map)
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    # app.run(debug=True)
+    app.run(debug=False)
 
     

@@ -74,17 +74,33 @@ def get_country_iso_mapping():
 
 def clean_data_names(df):
     """
-    Corrects encoding errors and CSV artifacts, while preserving historical team names.
-    This function NO LONGER standardizes Germany names to maintain data integrity.
+    Corrects encoding errors, artifacts, and performs transliteration for
+    problematic characters like German umlauts.
     """
-    if df is None: return df
-    
-    # 1. General artifact cleaning
+    if df is None:
+        return df
+
+    # 1. General artifact cleaning (e.g., remove 'rn">')
     for col in df.select_dtypes(include=['object']).columns:
         if df[col].dtype == 'object':
             df[col] = df[col].str.replace(r'rn">', '', regex=True).str.strip()
 
-    # 2. Specific encoding error corrections
+    # 2. Transliteration for persistent encoding issues (German Umlauts)
+    # This specifically targets the garbled representation of umlauts.
+    umlaut_replacements = {
+        'Ã¼': 'ue',  # For ü (e.g., Müller -> Mueller)
+        'Ã¶': 'oe',  # For ö (e.g., Götze -> Goetze)
+        'Ã¤': 'ae',  # For ä
+        'Ã©': 'e',   # For é (e.g., Côte d'Ivoire)
+        # Add any other specific mojibake-to-transliteration pairs here
+    }
+    for col in df.select_dtypes(include=['object']).columns:
+        if df[col].dtype == 'object':
+            for bad_char, good_char in umlaut_replacements.items():
+                df[col] = df[col].str.replace(bad_char, good_char, regex=False)
+
+    # 3. Specific String Corrections for remaining encoding errors
+    # This handles full-cell replacements.
     corrections = {
         'C�te d\'Ivoire': 'Côte d\'Ivoire',
         'Maracan� - Est�dio Jornalista M�rio Filho': 'Maracanã - Estádio Jornalista Mário Filho',
@@ -102,7 +118,6 @@ def clean_data_names(df):
         'D�Sseldorf': 'Düsseldorf',
         'La Coru�A': 'A Coruña',
     }
-    # Apply corrections across the entire DataFrame efficiently
     df.replace(corrections, inplace=True)
         
     return df
