@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 absl-py==2.1.0
 aext-assistant @ file:///private/var/folders/nz/j6p8yfhx1mv_0grj5xl4650h0000gp/T/abs_5blio7a88h/croot/aext-assistant_1717062156186/work
 aext-assistant-server @ file:///private/var/folders/nz/j6p8yfhx1mv_0grj5xl4650h0000gp/T/abs_84ykzx_q85/croot/aext-assistant-server_1717059976819/work
@@ -456,3 +457,8 @@ zict @ file:///Users/builder/cbouss/perseverance-python-buildout/croot/zict_1699
 zipp @ file:///Users/builder/cbouss/perseverance-python-buildout/croot/zipp_1707348942775/work
 zope.interface @ file:///Users/builder/cbouss/perseverance-python-buildout/croot/zope.interface_1699243689919/work
 zstandard @ file:///private/var/folders/k1/30mswbxs7r1g6zwn8y4fyt500000gp/T/abs_054juzz3it/croot/zstandard_1714677666952/work
+=======
+dash>=2.16.0
+pandas>=2.2.0
+plotly>=5.22.0
+>>>>>>> refs/remotes/origin/main
