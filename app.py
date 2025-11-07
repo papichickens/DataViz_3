@@ -2,11 +2,13 @@ from dash import Dash, dcc, html
 import pandas as pd
 from layout import get_layout
 from callbacks import register_callbacks
-from data_helper import load_world_cup_data, add_continent_column 
+from data_helper import load_world_cup_data, add_continent_column, get_country_iso_mapping
 
 # load data
 print("--- App Startup: Loading FIFA World Cup Data from local CSVs ---")
-world_cup_overview_df, matches_df, players_df = load_world_cup_data()
+world_cup_overview_df, matches_df, players_df, all_teams = load_world_cup_data()
+country_iso_map = get_country_iso_mapping()
+
 
 if world_cup_overview_df is not None:
     world_cup_overview_df = add_continent_column(world_cup_overview_df)
@@ -30,7 +32,7 @@ app.layout = html.Div([
 # app.layout = get_layout(world_cup_overview_df)
 
 
-register_callbacks(app, world_cup_overview_df, matches_df, players_df)
+register_callbacks(app, world_cup_overview_df, matches_df, players_df, all_teams, country_iso_map)
 
 if __name__ == "__main__":
     app.run(debug=True)
